@@ -52,14 +52,13 @@ if navigation == "Workflow Execution":
     with col1:
         st.markdown("#### Input Parameter / Telemetry Query")
         
-        # Option to upload log file or write custom query
         input_mode = st.radio("Select Input Method", ["Manual Query / Objective", "Upload Server Log File (.log / .txt)"], horizontal=True)
         
         prompt_text = "Analyze system telemetry logs to identify bottleneck patterns in distributed microservice pipelines."
         
         if input_mode == "Upload Server Log File (.log / .txt)":
             uploaded_file = st.file_uploader("Upload infrastructure or error log file", type=["log", "txt"])
-            if uploaded_file is not p_eval := None:
+            if uploaded_file is not None:
                 file_content = uploaded_file.read().decode("utf-8", errors="ignore")
                 prompt_text = f"Analyze the following server logs and provide root cause diagnosis, severity, and mitigation steps:\n\n{file_content[:4000]}"
                 st.success("Log file loaded successfully.")
@@ -89,7 +88,6 @@ if navigation == "Workflow Execution":
                         )
                         result = response.text
                     
-                    # Simulated professional metrics for enterprise presentation
                     m1, m2, m3 = st.columns(3)
                     m1.metric("Severity Level", "Critical", "-High Priority")
                     m2.metric("Est. Latency Impact", "420ms", "+15%")
@@ -99,7 +97,6 @@ if navigation == "Workflow Execution":
                     st.success("Workflow execution completed successfully.")
                     st.markdown(result)
                     
-                    # Download button for export
                     st.download_button(
                         label="📥 Export Incident Diagnostic Report",
                         data=result,
