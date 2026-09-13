@@ -58,7 +58,17 @@ if navigation == "Workflow Execution":
         
         if input_mode == "Upload Server Log File (.log / .txt)":
             uploaded_file = st.file_uploader("Upload infrastructure or error log file", type=["log", "txt"])
-            if uploaded_file is not None:
+            
+            # Quick sample log preset button for judges demo
+            if st.button("📂 Load Sample Infrastructure Log"):
+                st.session_state['sample_log'] = """[2026-09-13T15:42:10.102Z] ERROR [auth-service]: Database connection pool exhausted after 5000ms. Active connections: 50/50.
+[2026-09-13T15:42:11.230Z] WARN [gateway-proxy]: Upstream service timeout on /api/v1/checkout. Response status: 504 Gateway Timeout.
+[2026-09-13T15:42:12.450Z] CRITICAL [k8s-pod-monitor]: Pod auth-service-7b98d-x2k9l restarting due to OOMKilled (Exit Code: 137). Memory usage reached 2.1Gi/2Gi limit."""
+            
+            if 'sample_log' in st.session_state and uploaded_file is None:
+                prompt_text = f"Analyze the following server logs and provide root cause diagnosis, severity, and mitigation steps:\n\n{st.session_state['sample_log']}"
+                st.info("Sample SRE log loaded successfully.")
+            elif uploaded_file is not None:
                 file_content = uploaded_file.read().decode("utf-8", errors="ignore")
                 prompt_text = f"Analyze the following server logs and provide root cause diagnosis, severity, and mitigation steps:\n\n{file_content[:4000]}"
                 st.success("Log file loaded successfully.")
