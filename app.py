@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    from openai import OpenAI
+    from google import genai
 except ImportError:
     import subprocess
-    subprocess.run(["pip", "install", "openai", "python-dotenv"])
-    from openai import OpenAI
+    subprocess.run(["pip", "install", "google-genai", "python-dotenv"])
+    from google import genai
 
 st.set_page_config(
     page_title="TensorCraft AI | Enterprise Engine",
@@ -25,10 +25,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     try:
-        api_key = st.secrets.get("OPENAI_API_KEY", "")
+        api_key = st.secrets.get("GEMINI_API_KEY", "")
     except Exception:
         api_key = ""
 
@@ -45,7 +45,7 @@ with st.sidebar:
 
 if navigation == "Workflow Execution":
     st.markdown('<p class="main-title">TensorCraft Workflow Engine</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-desc">Execute intelligent AI inference tasks, parse unstructured data streams, and evaluate automated outputs in real-time.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-desc">Execute intelligent AI inference tasks using Google Gemini, parse unstructured data streams, and evaluate outputs.</p>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 1])
     
@@ -65,20 +65,16 @@ if navigation == "Workflow Execution":
         
         if execute_btn:
             if not api_key:
-                st.error("OpenAI API key not found. Please configure your .env file or Streamlit secrets.")
+                st.error("Gemini API key not found. Please set your GEMINI_API_KEY environment variable.")
             else:
                 try:
-                    client = OpenAI(api_key=api_key)
-                    with st.spinner("Processing workflow through TensorCraft engine..."):
-                        response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[
-                                {"role": "system", "content": "You are TensorCraft, an advanced AI workflow engine. Provide structured, precise, and professional technical responses."},
-                                {"role": "user", "content": user_input}
-                            ],
-                            temperature=0.3
+                    with st.spinner("Processing workflow through TensorCraft Gemini engine..."):
+                        client = genai.Client(api_key=api_key)
+                        response = client.models.generate_content(
+                            model="gemini-3.6-flash",
+                            contents=user_input,
                         )
-                        result = response.choices[0].message.content
+                        result = response.text
                     
                     st.success("Workflow execution completed successfully.")
                     st.markdown(result)
@@ -91,8 +87,8 @@ elif navigation == "Model Configuration":
     st.markdown('<p class="main-title">Model & Engine Configuration</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-desc">Configure foundational AI models and execution parameters.</p>', unsafe_allow_html=True)
     
-    st.text_input("OpenAI API Key (Override)", type="password", value="" if not api_key else "sk-configured-securely")
-    st.selectbox("Select Core LLM", ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"])
+    st.text_input("Gemini API Key (Override)", type="password", value="" if not api_key else "configured-securely")
+    st.selectbox("Select Core Model", ["gemini-3.6-flash", "gemini-2.5-pro"])
     st.slider("Inference Temperature", 0.0, 1.0, 0.3)
     
     if st.button("Save Configuration"):
