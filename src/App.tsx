@@ -16,7 +16,14 @@ import {
   Download,
   CheckCircle2,
   AlertTriangle,
-  Zap
+  Zap,
+  MessageSquare,
+  Send,
+  Sliders,
+  Copy,
+  Check,
+  Search,
+  HardDrive
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -34,6 +41,26 @@ export default function App() {
   const [isRemediating, setIsRemediating] = useState(false);
   const [remediationLogs, setRemediationLogs] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Added: Copilot Chat State (Without deleting anything)
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'ai', text: 'Hello! I am TensorCopilot. Ask me anything about your cluster telemetry or incident root causes.' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Added: Log Filter State for Live Stream
+  const [logFilter, setLogFilter] = useState('ALL');
+  const [logSearchQuery, setLogSearchQuery] = useState('');
+
+  // Added: Interactive Node Scaling State
+  const [nodeReplicas, setNodeReplicas] = useState<Record<string, number>>({
+    'gateway-proxy': 4,
+    'auth-service': 8,
+    'payment-core': 3,
+    'db-cluster': 2
+  });
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -74,7 +101,7 @@ export default function App() {
         const randomMsg = '[INFO] Vector telemetry packet synchronized';
         const randomService = randomServices[Math.floor(Math.random() * randomServices.length)];
         
-        setStreamLogs(prev => [`[${timestamps}] [${randomService.toUpperCase()}] ${randomMsg}`, ...prev.slice(0, 30)]);
+        setStreamLogs(prev => [`[${timestamps}] [${randomService.toUpperCase()}] ${randomMsg}`, ...prev.slice(0, 40)]);
 
         setTopologyNodes(prevNodes => 
           prevNodes.map(node => {
@@ -160,6 +187,39 @@ export default function App() {
     showToast('Executive Briefing Markdown downloaded!');
   };
 
+  // Added: Copy to clipboard function
+  const copyToClipboard = () => {
+    if (!executionResult) return;
+    navigator.clipboard.writeText(executionResult);
+    setCopied(true);
+    showToast('Report copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Added: Handle Copilot Chat Send
+  const handleSendChat = () => {
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput;
+    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setChatInput('');
+    setTimeout(() => {
+      let reply = "I analyzed the current cluster state. All metrics in " + region + " indicate stable memory profiles following the latest auto-remediation sequence.";
+      if (userMsg.toLowerCase().includes('auth')) {
+        reply = "The auth-service pod cluster currently exhibits 95% load saturation with connection pool exhaustion. Scaling replicas to 12 is recommended.";
+      } else if (userMsg.toLowerCase().includes('db') || userMsg.toLowerCase().includes('database')) {
+        reply = "PostgreSQL Cluster has active slow queries on table `user_sessions`. Connection pooling via PgBouncer is actively mitigating lock contention.";
+      }
+      setChatMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+    }, 800);
+  };
+
+  // Filtered logs for live stream tab
+  const filteredStreamLogs = streamLogs.filter(log => {
+    const matchesFilter = logFilter === 'ALL' || log.includes(`[${logFilter}]`);
+    const matchesSearch = log.toLowerCase().includes(logSearchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
   return (
     <div className="flex h-screen bg-[#0B0F19] text-[#E2E8F0] font-['Inter',sans-serif] overflow-hidden relative">
       {/* Toast Notification */}
@@ -217,6 +277,17 @@ export default function App() {
               <Settings className="w-4 h-4" /> Model Configuration
             </button>
           </nav>
+
+          {/* Added: Quick AI Copilot Toggle in Sidebar */}
+          <div className="mt-6 pt-6 border-t border-slate-800">
+            <button 
+              onClick={() => setChatOpen(!chatOpen)}
+              className="w-full py-2.5 px-3 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 rounded-xl text-xs font-semibold flex items-center justify-between transition-all"
+            >
+              <span className="flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5 text-indigo-400" /> TensorCopilot AI</span>
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+            </button>
+          </div>
         </div>
 
         <div className="p-3 bg-slate-900/80 border border-slate-800/80 rounded-xl">
@@ -249,6 +320,26 @@ export default function App() {
           </div>
         </header>
 
+        {/* Added: Global Cluster Health Ticker Bar */}
+        <div className="bg-slate-950 border-b border-slate-800 px-6 py-2 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-800">
+            <span className="text-slate-400">Cluster CPU Load</span>
+            <span className="text-amber-400 font-bold">78.4%</span>
+          </div>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-800">
+            <span className="text-slate-400">Memory Headroom</span>
+            <span className="text-emerald-400 font-bold">4.2 GB</span>
+          </div>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-800">
+            <span className="text-slate-400">Active Incidents</span>
+            <span className="text-rose-400 font-bold">1 Critical</span>
+          </div>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-800">
+            <span className="text-slate-400">Uptime (90d)</span>
+            <span className="text-slate-200 font-bold">99.98%</span>
+          </div>
+        </div>
+
         {/* Tab 1: Workflow Execution with AI Auto-Remediation */}
         {activeTab === 'workflow' && (
           <div className="p-8 max-w-7xl w-full mx-auto space-y-6">
@@ -258,9 +349,14 @@ export default function App() {
                 <p className="text-sm text-slate-400 mt-1">Execute intelligent AI inference tasks and trigger AI auto-remediation playbooks.</p>
               </div>
               {executionResult && (
-                <button onClick={exportReport} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-xl border border-slate-700 text-slate-200 transition-colors flex items-center gap-2">
-                  <Download className="w-3.5 h-3.5" /> Export Executive Briefing
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={copyToClipboard} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-xl border border-slate-700 text-slate-200 transition-colors flex items-center gap-1.5">
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy Report'}
+                  </button>
+                  <button onClick={exportReport} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-xl border border-slate-700 text-slate-200 transition-colors flex items-center gap-2">
+                    <Download className="w-3.5 h-3.5" /> Export Executive Briefing
+                  </button>
+                </div>
               )}
             </div>
 
@@ -389,7 +485,7 @@ export default function App() {
                     <span className="text-orange-400">Real-time Sliding Window</span>
                   </div>
                   <div className="h-36 w-full">
-                    <ResponsiveContainer width="1005" height="100%">
+                    <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
                         <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
                         <YAxis stroke="#64748b" fontSize={10} />
@@ -410,6 +506,7 @@ export default function App() {
 
                   {selectedNode ? (() => {
                     const node: any = topologyNodes.find((n: any) => n.id === selectedNode);
+                    const currentReplicas = nodeReplicas[selectedNode] || 3;
                     return node ? (
                       <div className="space-y-4 text-xs font-mono">
                         <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
@@ -417,6 +514,29 @@ export default function App() {
                           <div className="text-slate-400">Type: <span className="text-slate-200">{node.type}</span></div>
                           <div className="text-slate-400">Status: <span className={node.status === 'critical' ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>{node.status.toUpperCase()}</span></div>
                           <div className="text-slate-400">Error Rate: <span className="text-amber-400 font-bold">{node.status === 'critical' ? '14.8%' : '0.0%'}</span></div>
+                          <div className="text-slate-400">Pod Replicas: <span className="text-orange-400 font-bold">{currentReplicas} Active</span></div>
+                        </div>
+
+                        {/* Added: Interactive Pod Scaling Control */}
+                        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                          <div className="text-slate-300 font-semibold flex items-center gap-1.5"><Sliders className="w-3.5 h-3.5 text-orange-400" /> Scale Replicas</div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <button 
+                              onClick={() => {
+                                setNodeReplicas(prev => ({ ...prev, [selectedNode]: Math.max(1, currentReplicas - 1) }));
+                                showToast(`Scaled down ${node.name} to ${currentReplicas - 1} replicas`);
+                              }}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-white font-bold"
+                            >-</button>
+                            <span className="flex-1 text-center font-bold text-orange-400">{currentReplicas} Pods</span>
+                            <button 
+                              onClick={() => {
+                                setNodeReplicas(prev => ({ ...prev, [selectedNode]: currentReplicas + 1 }));
+                                showToast(`Scaled up ${node.name} to ${currentReplicas + 1} replicas`);
+                              }}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-white font-bold"
+                            >+</button>
+                          </div>
                         </div>
 
                         <div className="p-3 bg-orange-500/10 rounded-xl border border-orange-500/20 space-y-1">
@@ -452,17 +572,46 @@ export default function App() {
               </button>
             </div>
 
+            {/* Added: Log Search and Filter Controls */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <Search className="w-4 h-4 text-slate-400 ml-2" />
+                <input 
+                  type="text" 
+                  placeholder="Search log stream..." 
+                  value={logSearchQuery}
+                  onChange={(e) => setLogSearchQuery(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-orange-500 w-full md:w-64"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                {['ALL', 'ERROR', 'WARN', 'INFO'].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setLogFilter(level)}
+                    className={`px-3 py-1.5 rounded-lg border transition-all ${logFilter === level ? 'bg-orange-500 text-white border-orange-500' : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'}`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800 text-xs text-slate-400 font-mono">
-                <span>BUFFER: ACTIVE_TAIL</span>
+                <span>BUFFER: ACTIVE_TAIL ({filteredStreamLogs.length} events displayed)</span>
                 <span>STATUS: {isStreaming ? '🟢 STREAMING LIVE' : '⏸️ PAUSED'}</span>
               </div>
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 h-[420px] overflow-y-auto font-mono text-xs space-y-2">
-                {streamLogs.map((log, index) => (
-                  <div key={index} className={`py-1 px-2 rounded ${log.includes('ERROR') ? 'bg-rose-500/10 text-rose-400 font-bold' : log.includes('WARN') ? 'bg-amber-500/10 text-amber-300' : 'text-slate-300'}`}>
-                    {log}
-                  </div>
-                ))}
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 h-[380px] overflow-y-auto font-mono text-xs space-y-2">
+                {filteredStreamLogs.length > 0 ? (
+                  filteredStreamLogs.map((log, index) => (
+                    <div key={index} className={`py-1 px-2 rounded ${log.includes('ERROR') ? 'bg-rose-500/10 text-rose-400 font-bold' : log.includes('WARN') ? 'bg-amber-500/10 text-amber-300' : 'text-slate-300'}`}>
+                      {log}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-slate-500 py-12">No logs matching current filter criteria.</div>
+                )}
               </div>
             </div>
           </div>
@@ -497,6 +646,41 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Added: Floating TensorCopilot AI Chat Drawer */}
+      {chatOpen && (
+        <div className="absolute bottom-6 right-6 z-50 w-96 bg-slate-900 border border-indigo-500/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-900/60 to-purple-900/60 px-4 py-3 border-b border-indigo-500/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-indigo-400" />
+              <span className="font-semibold text-xs text-white">TensorCopilot AI Assistant</span>
+            </div>
+            <button onClick={() => setChatOpen(false)} className="text-slate-400 hover:text-white font-bold text-sm">×</button>
+          </div>
+
+          <div className="p-4 h-72 overflow-y-auto space-y-3 font-mono text-xs">
+            {chatMessages.map((msg, idx) => (
+              <div key={idx} className={`p-2.5 rounded-xl ${msg.sender === 'user' ? 'bg-indigo-600/20 text-indigo-200 ml-6 border border-indigo-500/30' : 'bg-slate-950 text-slate-300 mr-6 border border-slate-800'}`}>
+                {msg.text}
+              </div>
+            ))}
+          </div>
+
+          <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center gap-2">
+            <input 
+              type="text" 
+              placeholder="Ask Copilot about logs or errors..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+            />
+            <button onClick={handleSendChat} className="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors">
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
