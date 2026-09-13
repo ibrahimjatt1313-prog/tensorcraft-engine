@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TensorCraft AI Workflow Engine</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
+        p.subtitle { color: #7f8c8d; margin-top: 0; margin-bottom: 25px; }
+        textarea { width: 100%; height: 120px; padding: 12px; border: 1px solid #ccd1d1; border-radius: 8px; font-size: 14px; resize: vertical; box-sizing: border-box; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 15px; width: 100%; font-weight: 600; }
+        button:hover { background-color: #2980b9; }
+        .result-box { margin-top: 25px; background: #f8f9f9; padding: 20px; border-radius: 8px; border-left: 5px solid #3498db; display: none; }
+        .step-item { background: white; padding: 10px 15px; margin: 8px 0; border-radius: 6px; border: 1px solid #e5e8e8; }
+        .loading { text-align: center; color: #7f8c8d; display: none; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚡ TensorCraft: Enterprise AI Workflow Engine</h1>
+    <p class="subtitle">Automate complex enterprise pipelines using intelligent multi-agent orchestration.</p>
+    
+    <label for="prompt"><strong>Enter your workflow objective:</strong></label><br><br>
+    <textarea id="prompt" placeholder="e.g., Extract weekly sales data, analyze growth anomalies, and generate an executive report."></textarea>
+    
+    <button onclick="runWorkflow()">🚀 Run Workflow</button>
+    <div class="loading" id="loading">TensorCraft AI is orchestrating your workflow... Please wait.</div>
+    
+    <div class="result-box" id="resultBox">
+        <h3>📊 Execution Results</h3>
+        <div id="stepsContainer"></div>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+        <h3>📝 Final Generated Output</h3>
+        <div id="finalOutput" style="white-space: pre-line; background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e8e8;"></div>
+    </div>
+</div>
+
+<script>
+async function runWorkflow() {
+    const prompt = document.getElementById('prompt').value.trim();
+    if (!prompt) {
+        alert('Please enter a workflow objective.');
+        return;
+    }
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('resultBox').style.display = 'none';
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/run-workflow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt })
+        });
+
+        const data = await response.json();
+        document.getElementById('loading').style.display = 'none';
+
+        if (response.ok) {
+            document.getElementById('resultBox').style.display = 'block';
+            
+            let stepsHtml = '';
+            data.workflow_steps.forEach(step => {
+                stepsHtml += `<div class="step-item"><strong>Step ${step.step}: ${step.action}</strong> [${step.status}]<br><small>${step.details}</small></div>`;
+            });
+            document.getElementById('stepsContainer').innerHTML = stepsHtml;
+            document.getElementById('finalOutput').innerText = data.final_output;
+        } else {
+            alert('Error: ' + data.detail);
+        }
+    } catch (error) {
+        document.getElementById('loading').style.display = 'none';
+        alert('Could not connect to FastAPI server. Make sure main.py is running!');
+    }
+}
+</script>
+
+</body>
+</html>
