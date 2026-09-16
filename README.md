@@ -16,7 +16,7 @@ This repository adheres strictly to the multi-stage validation architecture mand
 
 ## 🛠️ Technology Stack
 * **Core Backend:** Python, RESTful Microservices Architecture
-* **Frontend UI:** React, TypeScript, Tailwind CSS, Vite
+* **Frontend UI:** React, TypeScript, Tailwind CSS, Vite, Recharts
 * **Telemetry & Automation:** Custom AI diagnostics engine for automated log analysis and alerting
 * **Deployment & CI/CD:** Vercel, Git-based version control, and automated validation harness
 
