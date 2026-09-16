@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TensorCraft AI - Autonomous SRE Command Center</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #04060f; color: #94a3b8; }
+        .glass-panel { background: rgba(10, 16, 31, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(30, 41, 59, 0.9); }
+        .glow-cyan { box-shadow: 0 0 25px rgba(6, 182, 212, 0.2); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @keyframes pulseGlow { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+        .animate-glow { animation: pulseGlow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-[#060913] border-r border-slate-800/80 flex flex-col justify-between p-4 z-30 shrink-0 h-screen sticky top-0">
+        <div>
+            <!-- Logo -->
+            <div class="flex items-center gap-3 px-2 py-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                    <i data-lucide="cpu" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-sm tracking-wider text-white block leading-tight">TENSORCRAFT</span>
+                    <span class="text-xs font-semibold text-cyan-400 tracking-widest flex items-center gap-1">AI SRE <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span></span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="space-y-1.5" id="sidebar-nav">
+                <button onclick="switchTab('overview', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-400 font-medium border border-cyan-500/30 shadow-sm transition text-left cursor-pointer">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview
+                </button>
+                <button onclick="switchTab('live-feed', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer">
+                    <i data-lucide="radio" class="w-4 h-4"></i> Live Telemetry
+                </button>
+                <button onclick="switchTab('pods', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer">
+                    <i data-lucide="box" class="w-4 h-4"></i> Active Pods <span class="ml-auto bg-cyan-500/20 text-cyan-400 text-[10px] px-2 py-0.5 rounded-full">4</span>
+                </button>
+                <button onclick="switchTab('clusters', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer">
+                    <i data-lucide="network" class="w-4 h-4"></i> Cluster Topology
+                </button>
+                <button onclick="switchTab('metrics', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Advanced Metrics
+                </button>
+                <button onclick="switchTab('logs', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> System Logs
+                </button>
+                <button onclick="switchTab('settings', this)" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer">
+                    <i data-lucide="settings" class="w-4 h-4"></i> Configuration
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer Status Box -->
+        <div class="p-3.5 rounded-xl bg-[#0a101f] border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+                <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cluster SRE v4.2
+                </span>
+            </div>
+            <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-cyan-400"></i> Auto-remediation active
+            </p>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-[#04060f]">
+        
+        <!-- TOP HEADER BAR -->
+        <header class="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between bg-[#060913]/90 backdrop-blur sticky top-0 z-20 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-[#0a101f] border border-slate-800 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-300 shadow-inner">
+                    <i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400"></i> WAR ROOM v4.2 
+                    <span class="bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full text-[10px]">Autonomous Agent</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-[#0a101f] border border-slate-800 px-3 py-1.5 rounded-full text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-white font-medium">All Systems Nominal</span>
+                </div>
+
+                <div class="hidden md:flex items-center bg-[#0a101f] border border-slate-800 p-1 rounded-full text-xs">
+                    <button class="px-3 py-1 rounded-full bg-cyan-500 text-slate-950 font-semibold shadow">us-east-1</button>
+                    <button class="px-3 py-1 text-slate-400 hover:text-white transition">eu-central-1</button>
+                    <button class="px-3 py-1 text-slate-400 hover:text-white flex items-center gap-1 transition">ap-south-1 <i data-lucide="globe" class="w-3 h-3"></i></button>
+                </div>
+
+                <!-- Speaker / Audio Toggle Button -->
+                <button id="speaker-btn" onclick="toggleAudio()" class="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-center" title="Toggle Sound">
+                    <i data-lucide="volume-2" id="speaker-icon" class="w-4 h-4"></i>
+                </button>
+
+                <button class="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800/50 transition relative cursor-pointer" title="Notifications">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-cyan-400 rounded-full animate-ping"></span>
+                </button>
+                
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow ring-2 ring-cyan-500/30">
+                    A
+                </div>
+            </div>
+        </header>
+
+        <!-- TAB VIEWS CONTAINER -->
+        <div class="p-6 flex-1">
+            
+            <!-- 1. OVERVIEW TAB -->
+            <div id="tab-overview" class="tab-content active space-y-6">
+                <div class="grid grid-cols-12 gap-6">
+                    <!-- Left & Center Column (Span 8) -->
+                    <div class="col-span-12 xl:col-span-8 space-y-6">
+                        
+                        <!-- Main Title Banner -->
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between bg-gradient-to-r from-[#0a101f] to-[#0d1730] border border-slate-800/90 p-5 rounded-2xl relative overflow-hidden gap-4 shadow-xl">
+                            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none animate-glow"></div>
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <h1 class="text-base md:text-lg font-bold text-white tracking-wide">AUTONOMOUS SRE COMMAND CENTER</h1>
+                                </div>
+                                <p class="text-xs text-slate-400">Real-time Kubernetes operations • Self-healing clusters • AI neural telemetry</p>
+                            </div>
+                            <div class="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3.5 py-2 rounded-xl text-purple-400 text-xs font-semibold shrink-0 shadow-inner">
+                                <i data-lucide="brain" class="w-4 h-4 animate-spin" style="animation-duration: 8s;"></i> Neural Ops v4 Active
+                            </div>
+                        </div>
+
+                        <!-- 3 Top Metric Cards Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Service Topology -->
+                            <div class="glass-panel p-4 rounded-2xl relative hover:border-cyan-500/50 transition">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                        <i data-lucide="git-branch" class="w-4 h-4"></i>
+                                    </div>
+                                    <span class="text-emerald-400 bg-emerald-500/10 p-1 rounded-full"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                                </div>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Service Topology</p>
+                                <h3 class="text-base font-bold text-white mt-0.5">Stable <span class="text-slate-400 font-normal text-xs">(4 Nodes Online)</span></h3>
+                                <a href="#" onclick="switchTab('clusters', document.querySelectorAll('#sidebar-nav button')[3])" class="text-xs text-cyan-400 flex items-center gap-1 mt-3 hover:underline font-medium">View topology <i data-lucide="arrow-right" class="w-3 h-3"></i></a>
+                            </div>
+
+                            <!-- Live CPU Load -->
+                            <div class="glass-panel p-4 rounded-2xl relative border-cyan-500/40 glow-cyan">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                                    </div>
+                                    <span id="cpu-status-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">Optimal 52%</span>
+                                </div>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Live CPU Load</p>
+                                <h3 id="cpu-load-val" class="text-2xl font-bold text-white mt-0.5">52%</h3>
+                                <div class="mt-3 h-4 flex items-end">
+                                    <svg class="w-full h-full text-emerald-400" viewBox="0 0 100 20" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M0 15 Q 25 5, 50 12 T 100 8" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- AI Remediation -->
+                            <div class="glass-panel p-4 rounded-2xl relative hover:border-amber-500/50 transition">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                        <i data-lucide="shield" class="w-4 h-4"></i>
+                                    </div>
+                                    <span class="text-emerald-400 bg-emerald-500/10 p-1 rounded-full"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                                </div>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">AI Remediation</p>
+                                <h3 class="text-base font-bold text-white mt-0.5">Sandbox Ready</h3>
+                                <p class="text-[11px] text-slate-400 mt-3">Zero-touch auto-patching enabled</p>
+                            </div>
+                        </div>
+
+                        <!-- Live AI Diagnostic Stream -->
+                        <div class="glass-panel rounded-2xl p-4 space-y-3">
+                            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-white tracking-wider">
+                                    <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i> LIVE AI DIAGNOSTIC STREAM
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-slate-400">Auto-scrolling</span>
+                                    <div class="w-8 h-4 bg-cyan-500 rounded-full relative p-0.5 cursor-pointer">
+                                        <div class="w-3 h-3 bg-slate-950 rounded-full ml-auto"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="font-mono text-xs space-y-2 py-1 text-slate-300 max-h-36 overflow-y-auto" id="diagnostic-log-container">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-500">13:24:12</span>
+                                    <span class="bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">AUTO_FIX</span>
+                                    <span>AI Remediation deployed successfully. Cluster stable.</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-500">13:24:02</span>
+                                    <span class="bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">CMD</span>
+                                    <span>Command executed: "fix the system"</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-500">13:23:49</span>
+                                    <span class="bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">CMD</span>
+                                    <span>Command executed: "fake assistant"</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Command & Voice Input Bar -->
+                        <div class="glass-panel p-4 rounded-2xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                                        <i data-lucide="activity" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Last Executed Command / Status</p>
+                                        <h4 id="exec-status-text" class="text-sm font-semibold text-white">Auto-Fix Successfully Applied. Cluster stabilized.</h4>
+                                    </div>
+                                </div>
+                                <button onclick="triggerAutoFix()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/25 transition cursor-pointer shrink-0">
+                                    <i data-lucide="zap" class="w-4 h-4 fill-slate-950"></i> Trigger Auto-Fix
+                                </button>
+                            </div>
+
+                            <!-- Manual Command / Voice Simulation Input Box -->
+                            <div class="flex gap-2 pt-2 border-t border-slate-800/80">
+                                <input type="text" id="manual-command-input" placeholder="Type command (e.g., 'auto fix', 'pods', 'metrics', 'logs')..." class="flex-1 bg-[#04060f] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 transition">
+                                <button onclick="executeManualCommand()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 font-semibold px-4 py-2 rounded-xl text-xs transition border border-slate-700 cursor-pointer shadow">
+                                    Execute
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Cluster Performance Metrics -->
+                        <div class="glass-panel p-4 rounded-2xl space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-white tracking-wider">
+                                    <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i> CLUSTER PERFORMANCE METRICS (CPU % VS MEMORY %)
+                                </div>
+                                <div class="flex items-center gap-4 text-xs">
+                                    <span class="flex items-center gap-1.5 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span> CPU %</span>
+                                    <span class="flex items-center gap-1.5 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Memory %</span>
+                                    <div class="bg-[#04060f] border border-slate-800 px-3 py-1 rounded-lg text-slate-300 flex items-center gap-2">
+                                        Last 6 Hours <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-32 relative pt-4 overflow-hidden">
+                                <div class="absolute inset-0 flex flex-col justify-between text-[10px] text-slate-600 pointer-events-none">
+                                    <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+                                </div>
+                                <svg class="w-full h-full text-cyan-400 overflow-visible ml-6 pr-4" viewBox="0 0 600 80" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path id="cpu-wave-path" d="M0 50 Q 100 20, 200 45 T 400 30 T 600 40" class="text-cyan-400 transition-all duration-700" />
+                                    <path id="mem-wave-path" d="M0 60 Q 100 50, 200 55 T 400 48 T 600 52" class="text-emerald-400 transition-all duration-700" stroke-width="1.5" />
+                                </svg>
+                                <div class="flex justify-between text-[10px] text-slate-500 pl-6 pr-4 mt-2">
+                                    <span>01:30 AM</span><span>03:00 AM</span><span>04:30 AM</span><span>06:00 AM</span><span>07:30 AM</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column: Interactive Webcam & Microphone Stream -->
+                    <div class="col-span-12 xl:col-span-4 space-y-6">
+                        <div class="glass-panel p-5 rounded-2xl space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-white">
+                                    <i data-lucide="video" class="w-4 h-4 text-cyan-400"></i> Neural Vision & Voice Input
+                                </div>
+                                <div id="stream-status-badge" class="flex items-center gap-2 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-[10px] text-slate-400 font-medium">
+                                    <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> <span id="status-text">Offline</span>
+                                </div>
+                            </div>
+
+                            <!-- Video Container -->
+                            <div class="border-2 border-dashed border-cyan-500/30 rounded-2xl h-56 bg-[#04060f]/90 flex flex-col items-center justify-center text-center p-2 relative overflow-hidden">
+                                <video id="webcam-video" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover rounded-2xl hidden"></video>
+                                <div id="cam-placeholder" class="flex flex-col items-center justify-center p-4">
+                                    <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3 shadow">
+                                        <i data-lucide="video-off" class="w-6 h-6"></i>
+                                    </div>
+                                    <h4 class="text-sm font-bold text-white">Webcam Stream Offline</h4>
+                                    <p class="text-xs text-slate-400 mt-1">Click "Start Camera" below to begin tracking.</p>
+                                </div>
+                            </div>
+
+                            <!-- Action Controls for Camera & Mic -->
+                            <div class="flex gap-2">
+                                <button onclick="toggleCamera()" id="cam-toggle-btn" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow">
+                                    <i data-lucide="video" class="w-3.5 h-3.5"></i> Start Camera
+                                </button>
+                                <button onclick="toggleMic()" id="mic-toggle-btn" class="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer">
+                                    <i data-lucide="mic" id="mic-icon" class="w-3.5 h-3.5 text-emerald-400"></i> <span id="mic-text">Mic Active</span>
+                                </button>
+                            </div>
+
+                            <div class="space-y-3 pt-2 text-xs border-t border-slate-800/80">
+                                <div class="flex items-center justify-between text-slate-400">
+                                    <span class="flex items-center gap-2"><i data-lucide="scan" class="w-3.5 h-3.5 text-cyan-400"></i> Detected Gesture:</span>
+                                    <span id="gesture-status" class="text-cyan-400 font-medium">Active (Monitoring)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-400">
+                                    <span class="flex items-center gap-2"><i data-lucide="mic" class="w-3.5 h-3.5 text-cyan-400"></i> Voice Listener:</span>
+                                    <span id="voice-status" class="text-emerald-400 font-medium animate-pulse">Listening for SRE commands...</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-400">
+                                    <span class="flex items-center gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i> Tracking FPS:</span>
+                                    <span id="fps-counter" class="text-white font-mono">30 FPS</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. LIVE FEED TAB -->
+            <div id="tab-live-feed" class="tab-content space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="radio" class="text-cyan-400"></i> Real-Time Telemetry Live Feed</h2>
+                    <p class="text-xs text-slate-400">Streaming live events across microservices and cluster namespaces.</p>
+                    <div class="space-y-2 font-mono text-xs bg-[#04060f] p-4 rounded-xl border border-slate-800">
+                        <div class="text-emerald-400">[13:25:10] INFO: ingress-controller routed 1,420 req/sec successfully.</div>
+                        <div class="text-cyan-400">[13:25:12] DEBUG: redis-cache memory sync completed.</div>
+                        <div class="text-amber-400">[13:25:15] WARN: Database pool latency spike resolved by AI auto-scaler.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. PODS TAB -->
+            <div id="tab-pods" class="tab-content space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="box" class="text-cyan-400"></i> Active Kubernetes Pods</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="bg-[#04060f] p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                            <div>
+                                <h4 class="text-white font-semibold text-sm">auth-pod-2 (Running)</h4>
+                                <p class="text-xs text-slate-400">CPU: 32% | Memory: 78%</p>
+                            </div>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </div>
+                        <div class="bg-[#04060f] p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                            <div>
+                                <h4 class="text-white font-semibold text-sm">tensor-engine-node (Running)</h4>
+                                <p class="text-xs text-slate-400">CPU: 54% | Memory: 42%</p>
+                            </div>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. CLUSTERS TAB -->
+            <div id="tab-clusters" class="tab-content space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="network" class="text-cyan-400"></i> Cluster Topology & Nodes</h2>
+                    <p class="text-xs text-slate-400">Active regions: us-east-1, eu-central-1, ap-south-1. Zero packet loss detected.</p>
+                </div>
+            </div>
+
+            <!-- 5. METRICS TAB -->
+            <div id="tab-metrics" class="tab-content space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-cyan-400"></i> Advanced System Metrics</h2>
+                    <p class="text-xs text-slate-400">Network throughput, disk I/O, and throughput statistics.</p>
+                </div>
+            </div>
+
+            <!-- 6. LOGS TAB -->
+            <div id="tab-logs" class="tab-content space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="file-text" class="text-cyan-400"></i> System & Error Logs</h2>
+                    <div class="bg-[#04060f] p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-1">
+                        <div>[SYSTEM] Initialized SRE Autonomous Agent v4.2</div>
+                        <div>[SECURITY] OAuth token verification passed successfully.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. SETTINGS TAB -->
+            <div id="tab-settings" class="tab-content space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="settings" class="text-cyan-400"></i> Command Center Settings</h2>
+                    <p class="text-xs text-slate-400">Manage auto-healing policies, API keys, and notification channels.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JavaScript logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Tab Switching Function
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            document.querySelectorAll('#sidebar-nav button').forEach(btn => {
+                btn.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left cursor-pointer";
+            });
+            
+            if(!btnElement) {
+                const navButtons = document.querySelectorAll('#sidebar-nav button');
+                const tabMap = { 'overview': 0, 'live-feed': 1, 'pods': 2, 'clusters': 3, 'metrics': 4, 'logs': 5, 'settings': 6 };
+                if(tabMap[tabId] !== undefined) {
+                    btnElement = navButtons[tabMap[tabId]];
+                }
+            }
+
+            if(btnElement) {
+                btnElement.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-400 font-medium border border-cyan-500/30 shadow-sm transition text-left cursor-pointer";
+            }
+        }
+
+        // Speaker / Audio Toggle Function
+        let isMuted = false;
+        function toggleAudio() {
+            isMuted = !isMuted;
+            const speakerIcon = document.getElementById('speaker-icon');
+            const speakerBtn = document.getElementById('speaker-btn');
+            
+            if(isMuted) {
+                speakerIcon.setAttribute('data-lucide', 'volume-x');
+                speakerIcon.classList.add('text-red-400');
+                speakerBtn.title = "Unmute Sound";
+            } else {
+                speakerIcon.setAttribute('data-lucide', 'volume-2');
+                speakerIcon.classList.remove('text-red-400');
+                speakerBtn.title = "Toggle Sound";
+            }
+            lucide.createIcons();
+        }
+
+        // Webcam Stream Control
+        let mediaStream = null;
+        async function toggleCamera() {
+            const videoElem = document.getElementById('webcam-video');
+            const placeholder = document.getElementById('cam-placeholder');
+            const camBtn = document.getElementById('cam-toggle-btn');
+            const badge = document.getElementById('stream-status-badge');
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            if (!mediaStream) {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    videoElem.srcObject = mediaStream;
+                    videoElem.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    
+                    camBtn.innerHTML = '<i data-lucide="video-off" class="w-3.5 h-3.5"></i> Stop Camera';
+                    camBtn.className = "flex-1 bg-red-500/20 border border-red-500/40 text-red-400 font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer";
+                    
+                    badge.className = "flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] text-emerald-400 font-medium";
+                    statusDot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                    statusText.innerText = "Live";
+                    lucide.createIcons();
+                } catch (err) {
+                    alert("Camera permission denied or camera not found!");
+                }
+            } else {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                videoElem.srcObject = null;
+                videoElem.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+
+                camBtn.innerHTML = '<i data-lucide="video" class="w-3.5 h-3.5"></i> Start Camera';
+                camBtn.className = "flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow";
+                
+                badge.className = "flex items-center gap-2 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-[10px] text-slate-400 font-medium";
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-slate-500";
+                statusText.innerText = "Offline";
+                lucide.createIcons();
+            }
+        }
+
+        // Speech Recognition Setup
+        let micActive = true;
+        let recognition = null;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[event.results.length - 1][0].transcript.trim();
+                processCommand(transcript);
+            };
+
+            recognition.onend = function() {
+                if (micActive && recognition) {
+                    try { recognition.start(); } catch(e){}
+                }
+            };
+            try { recognition.start(); } catch(e){}
+        }
+
+        // Toggle Mic
+        function toggleMic() {
+            micActive = !micActive;
+            const micBtn = document.getElementById('mic-toggle-btn');
+            const micIcon = document.getElementById('mic-icon');
+            const micText = document.getElementById('mic-text');
+            const voiceStatus = document.getElementById('voice-status');
+
+            if(micActive) {
+                micBtn.className = "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer";
+                micIcon.className = "w-3.5 h-3.5 text-emerald-400";
+                micIcon.setAttribute('data-lucide', 'mic');
+                micText.innerText = "Mic Active";
+                voiceStatus.innerText = "Listening for SRE commands...";
+                voiceStatus.className = "text-emerald-400 font-medium animate-pulse";
+                if (recognition) { try { recognition.start(); } catch(e) {} }
+            } else {
+                micBtn.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-slate-700";
+                micIcon.className = "w-3.5 h-3.5 text-slate-400";
+                micIcon.setAttribute('data-lucide', 'mic-off');
+                micText.innerText = "Mic Off";
+                voiceStatus.innerText = "Listening disabled...";
+                voiceStatus.className = "text-slate-500";
+                if (recognition) { try { recognition.stop(); } catch(e) {} }
+            }
+            lucide.createIcons();
+        }
+
+        // Manual Command Execution from input box
+        function executeManualCommand() {
+            const input = document.getElementById('manual-command-input');
+            const val = input.value.trim();
+            if(val) {
+                processCommand(val);
+                input.value = '';
+            }
+        }
+
+        // Central Command Processor
+        function processCommand(rawText) {
+            const transcript = rawText.toLowerCase();
+            document.getElementById('exec-status-text').innerText = `Command executed: "${rawText}"`;
+            
+            const logContainer = document.getElementById('diagnostic-log-container');
+            const now = new Date().toTimeString().split(' ')[0];
+            const newLog = document.createElement('div');
+            newLog.className = "flex items-center gap-3";
+            newLog.innerHTML = `<span class="text-slate-500">${now}</span> <span class="bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">CMD</span> <span>Command executed: "${rawText}"</span>`;
+            logContainer.prepend(newLog);
+
+            if (transcript.includes('auto fix') || transcript.includes('fix')) {
+                triggerAutoFix();
+            } else if (transcript.includes('overview') || transcript.includes('dashboard')) {
+                switchTab('overview');
+            } else if (transcript.includes('feed') || transcript.includes('live')) {
+                switchTab('live-feed');
+            } else if (transcript.includes('pod') || transcript.includes('pods')) {
+                switchTab('pods');
+            } else if (transcript.includes('cluster') || transcript.includes('topology')) {
+                switchTab('clusters');
+            } else if (transcript.includes('metric') || transcript.includes('metrics')) {
+                switchTab('metrics');
+            } else if (transcript.includes('log') || transcript.includes('logs')) {
+                switchTab('logs');
+            } else if (transcript.includes('setting') || transcript.includes('settings')) {
+                switchTab('settings');
+            }
+        }
+
+        // Trigger Auto-Fix Simulation
+        function triggerAutoFix() {
+            const statusText = document.getElementById('exec-status-text');
+            statusText.innerText = "Deploying AI Patch & Rebalancing Pods...";
+            
+            const logContainer = document.getElementById('diagnostic-log-container');
+            const now = new Date().toTimeString().split(' ')[0];
+            const newLog = document.createElement('div');
+            newLog.className = "flex items-center gap-3";
+            newLog.innerHTML = `<span class="text-slate-500">${now}</span> <span class="bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">AUTO_FIX</span> <span>AI Remediation deployed successfully. Cluster stable.</span>`;
+            logContainer.prepend(newLog);
+
+            setTimeout(() => {
+                statusText.innerText = "Auto-Fix Successfully Applied. Cluster stabilized.";
+            }, 1200);
+        }
+
+        // Dynamic Live CPU & Chart Wave Simulation
+        setInterval(() => {
+            const randomCpu = Math.floor(Math.random() * (62 - 48 + 1)) + 48;
+            const cpuValEl = document.getElementById('cpu-load-val');
+            const cpuBadge = document.getElementById('cpu-status-badge');
+            if(cpuValEl) {
+                cpuValEl.innerText = randomCpu + "%";
+                cpuBadge.innerText = `Optimal ${randomCpu}%`;
+            }
+
+            const cpuPath = document.getElementById('cpu-wave-path');
+            const memPath = document.getElementById('mem-wave-path');
+            if(cpuPath && memPath) {
+                const r1 = Math.floor(Math.random() * 15) + 30;
+                const r2 = Math.floor(Math.random() * 15) + 40;
+                cpuPath.setAttribute('d', `M0 ${r1} Q 100 20, 200 ${r1 + 10} T 400 30 T 600 40`);
+                memPath.setAttribute('d', `M0 ${r2} Q 100 50, 200 ${r2 - 5} T 400 48 T 600 52`);
+            }
+        }, 2500);
+    </script>
+</body>
+</html>
