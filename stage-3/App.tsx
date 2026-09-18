@@ -15,11 +15,9 @@ export default function SRECommandCenter() {
   const [voiceTranscript, setVoiceTranscript] = useState('Listening disabled...');
   const [lastCommand, setLastCommand] = useState('System Initialized successfully.');
   
-  // Navigation sidebar state & active modal views
   const [activeNav, setActiveNav] = useState('Overview');
-  const [modalView, setModalView] = useState<string | null>(null); // 'feed' | 'pods' | 'clusters' | 'metrics' | 'logs' | 'settings' | 'summary' | null
+  const [modalView, setModalView] = useState<string | null>(null);
   
-  // Telemetry & Pods state
   const [telemetryData, setTelemetryData] = useState<any[]>([
     { time: '01:30 AM', cpu: 42, memory: 58, latency: 15 },
     { time: '03:00 AM', cpu: 45, memory: 62, latency: 18 },
@@ -31,7 +29,6 @@ export default function SRECommandCenter() {
   const [isSelfHealing, setIsSelfHealing] = useState(false);
   const [activeRegion, setActiveRegion] = useState('us-east-1');
   
-  // Incidents & Alerts state
   const [incidents, setIncidents] = useState([
     { id: 'INC-8091', service: 'Auth-Microservice', severity: 'High', status: 'Mitigating', details: 'Token parser memory spike detected.' },
     { id: 'INC-8092', service: 'Payment-Gateway', severity: 'Medium', status: 'Monitoring', details: 'Stripe webhook latency elevated.' }
@@ -46,11 +43,8 @@ export default function SRECommandCenter() {
     { name: 'gateway-ingress-1', status: 'Running', ip: '10.244.2.3', uptime: '12d 01h', cpu: '12%', memory: '180MB' }
   ]);
   
-  // Interactive CLI & Toast State
   const [cliInput, setCliInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Live Stream Logs
   const [logs, setLogs] = useState([
     { time: '07:32:01', type: 'INFO', msg: 'Cluster heartbeat stable across 4 active pods.' },
     { time: '07:32:04', type: 'WARN', msg: 'High memory usage detected on auth-pod-2 (78%).' },
@@ -84,7 +78,6 @@ export default function SRECommandCenter() {
     }
   };
 
-  // Fetch Live Metrics and Pods from Flask Backend
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -131,7 +124,7 @@ export default function SRECommandCenter() {
         setCameraActive(true);
         setDetectedGesture('Scanning for gestures...');
       } catch (err) {
-        setDetectedGesture('Camera Permission Denied / Error');
+        setDetectedGesture('Camera Permission Denied');
       }
     } else {
       const stream = videoRef.current?.srcObject as MediaStream;
@@ -144,10 +137,9 @@ export default function SRECommandCenter() {
 
   const toggleVoice = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
     if (!SpeechRecognition) {
       setVoiceActive(true);
-      setVoiceTranscript('"auto fix" (Simulated Voice)');
+      setVoiceTranscript('"auto fix" (Simulated)');
       triggerSelfHealing();
       setTimeout(() => setVoiceActive(false), 2000);
       return;
@@ -162,22 +154,21 @@ export default function SRECommandCenter() {
 
         recognition.onstart = () => {
           setVoiceActive(true);
-          setVoiceTranscript('Listening for SRE commands...');
+          setVoiceTranscript('Listening for commands...');
         };
 
         recognition.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript.toLowerCase();
           setVoiceTranscript(`"${transcript}"`);
-          
           if (transcript.includes('heal') || transcript.includes('fix') || transcript.includes('resolve')) {
             triggerSelfHealing();
           } else {
-            setLastCommand(`Voice Command Executed: ${transcript}`);
+            setLastCommand(`Voice Command: ${transcript}`);
           }
         };
 
         recognition.onerror = () => {
-          setVoiceTranscript('"auto fix" (Fallback Trigger)');
+          setVoiceTranscript('"auto fix" (Fallback)');
           triggerSelfHealing();
         };
 
@@ -191,7 +182,7 @@ export default function SRECommandCenter() {
       }
     } else {
       setVoiceActive(false);
-      setVoiceTranscript('Voice listener paused.');
+      setVoiceTranscript('Paused.');
     }
   };
 
@@ -200,7 +191,7 @@ export default function SRECommandCenter() {
     setLastCommand('Initiating AI Self-Healing Protocol...');
     setNodeStatus('Rebalancing Cluster...');
     playAlertSound();
-    triggerToast('Slack Alert: Self-healing protocol initiated for cluster nodes.');
+    triggerToast('Slack Alert: Self-healing protocol initiated.');
 
     try {
       await fetch('http://localhost:5000/api/heal', { method: 'POST' });
@@ -217,9 +208,9 @@ export default function SRECommandCenter() {
       setPods(prev => prev.map(p => ({ ...p, status: 'Running', cpu: '22%' })));
       setLogs(prev => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), type: 'SUCCESS', msg: 'AI Sandbox patch successfully deployed to cluster nodes.' }
+        { time: new Date().toLocaleTimeString(), type: 'SUCCESS', msg: 'AI Sandbox patch successfully deployed.' }
       ]);
-      triggerToast('Slack Alert: All incidents resolved successfully.');
+      triggerToast('Slack Alert: All incidents resolved.');
     }, 2500);
   };
 
@@ -227,7 +218,7 @@ export default function SRECommandCenter() {
     setActiveRegion(reg);
     setLastCommand(`Failover rerouted traffic to region ${reg}.`);
     triggerToast(`Network Failover: Active cluster routed to ${reg}.`);
-    setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), type: 'INFO', msg: `Traffic successfully shifted to ${reg} region.` }]);
+    setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), type: 'INFO', msg: `Traffic shifted to ${reg}.` }]);
   };
 
   const exportAuditReport = () => {
@@ -246,10 +237,9 @@ export default function SRECommandCenter() {
     a.download = `sre-audit-report-${activeRegion}.json`;
     a.click();
     setLastCommand('Exported Audit Report JSON successfully.');
-    triggerToast('System: Audit report downloaded successfully.');
+    triggerToast('System: Audit report downloaded.');
   };
 
-  // Naya Addition: CSV Metrics Export feature (added without removing anything)
   const exportCsvReport = () => {
     let csvContent = "data:text/csv;charset=utf-8,Time,CPU(%),Memory(%),Latency(ms)\n";
     telemetryData.forEach(row => {
@@ -262,7 +252,7 @@ export default function SRECommandCenter() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerToast('Export: Telemetry CSV report successfully generated.');
+    triggerToast('Export: Telemetry CSV report generated.');
   };
 
   const restartPod = async (podName: string) => {
@@ -279,8 +269,8 @@ export default function SRECommandCenter() {
 
     setTimeout(() => {
       setPods(prev => prev.map(p => p.name === podName ? { ...p, status: 'Running', cpu: '18%' } : p));
-      setLastCommand(`Pod ${podName} successfully restarted & healthy.`);
-      triggerToast(`Kubernetes: Pod ${podName} successfully restarted.`);
+      setLastCommand(`Pod ${podName} successfully restarted.`);
+      triggerToast(`Kubernetes: Pod ${podName} restarted.`);
     }, 1500);
   };
 
@@ -317,7 +307,7 @@ export default function SRECommandCenter() {
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans antialiased relative flex flex-col selection:bg-cyan-500 selection:text-black">
       
-      {/* Toast Notification Banner */}
+      {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 bg-cyan-950 border border-cyan-700 text-cyan-200 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 animate-in fade-in slide-in-from-top duration-300 font-mono text-xs">
           <Bell className="w-4 h-4 text-cyan-400 animate-bounce" />
@@ -340,16 +330,13 @@ export default function SRECommandCenter() {
           <div className="hidden md:flex items-center space-x-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             <span className="text-xs font-mono tracking-wide text-cyan-200">WAR ROOM v4.2</span>
-            <span className="text-[10px] bg-cyan-950 border border-cyan-800 text-cyan-400 px-2 py-0.5 rounded-full font-semibold">
-              Enterprise Ops
-            </span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <div className="hidden lg:flex items-center space-x-2 bg-emerald-950/60 border border-emerald-900 px-3 py-1.5 rounded-full">
+        <div className="flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-xs text-emerald-300 font-medium">System Online</span>
+            <span className="text-xs text-emerald-300 font-medium">Nominal</span>
           </div>
 
           <div className="flex bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs font-mono">
@@ -358,51 +345,47 @@ export default function SRECommandCenter() {
                 key={reg}
                 type="button"
                 onClick={() => switchRegion(reg)}
-                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${activeRegion === reg ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'}`}
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${activeRegion === reg ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'}`}
               >
                 {reg}
               </button>
             ))}
           </div>
 
-          <button 
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
-            title="Toggle Alert Sounds"
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-
-          {/* New CSV Export Button Added Here */}
+          {/* Export Buttons Restored */}
           <button 
             onClick={exportCsvReport}
-            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs text-emerald-400 font-mono transition-all cursor-pointer"
             title="Export CSV Metrics"
           >
-            <Database className="w-4 h-4 text-emerald-400" />
+            <Database className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">CSV</span>
           </button>
 
           <button 
             onClick={exportAuditReport}
-            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs text-cyan-400 font-mono transition-all cursor-pointer"
             title="Export Audit JSON"
           >
-            <Download className="w-4 h-4 text-cyan-400" />
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">JSON</span>
           </button>
 
-          <div className="flex items-center space-x-3 pl-2 border-l border-slate-800">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
-              AI
-            </div>
-          </div>
+          <button 
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
+            title="Toggle Sound"
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
+          </button>
         </div>
       </header>
 
-      {/* Main Layout Area */}
+      {/* Main Content Layout */}
       <div className="flex flex-1 overflow-hidden">
         
-        {/* Left Navigation Sidebar */}
-        <aside className="w-64 bg-[#090e1b] border-r border-slate-800/80 p-4 flex flex-col justify-between hidden md:flex">
+        {/* Left Sidebar */}
+        <aside className="w-64 bg-[#090e1b] border-r border-slate-800/80 p-4 flex flex-col justify-between hidden md:flex shrink-0">
           <div className="space-y-6">
             <nav className="space-y-1.5">
               {navItems.map((item) => {
@@ -427,14 +410,14 @@ export default function SRECommandCenter() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-bold text-slate-200">SRE Online</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono">Auto-healing Enabled ({activeRegion})</p>
+            <p className="text-[11px] text-slate-400 font-mono">Auto-healing ({activeRegion})</p>
           </div>
         </aside>
 
         {/* Center Dashboard Viewport */}
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           
-          {/* Top Hero Banner Card */}
+          {/* Top Hero Card */}
           <div className="bg-[#0b101d] border border-slate-800/80 rounded-2xl p-6 relative overflow-hidden shadow-xl">
             <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
             
@@ -445,12 +428,11 @@ export default function SRECommandCenter() {
                   <h1 className="text-xl md:text-2xl font-black text-white tracking-wide">AUTONOMOUS SRE COMMAND CENTER</h1>
                 </div>
                 <p className="text-xs text-slate-400 font-mono">
-                  Real-time Kubernetes operations • Self-healing • AI-driven observability ({activeRegion})
+                  Real-time Kubernetes operations • Self-healing • AI observability ({activeRegion})
                 </p>
               </div>
 
               <div className="flex items-center space-x-3">
-                {/* Naya Health Summary Button added here */}
                 <button
                   onClick={() => setModalView('summary')}
                   className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-cyan-300 font-mono text-xs rounded-xl transition-all flex items-center space-x-2 cursor-pointer shadow-md"
@@ -466,10 +448,8 @@ export default function SRECommandCenter() {
               </div>
             </div>
 
-            {/* 3 Overview Metric Cards */}
+            {/* 3 Metric Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              
-              {/* Card 1: Service Topology */}
               <div 
                 onClick={() => setShowNodeDrawer(true)}
                 className="bg-[#0f1525] border border-slate-800/80 rounded-xl p-4 transition-all hover:border-cyan-500/40 cursor-pointer group shadow-lg"
@@ -487,7 +467,6 @@ export default function SRECommandCenter() {
                 </span>
               </div>
 
-              {/* Card 2: Live CPU Load */}
               <div className="bg-[#0f1525] border border-slate-800/80 rounded-xl p-4 transition-all hover:border-emerald-500/40 shadow-lg">
                 <div className="flex items-center justify-between text-slate-400 mb-2">
                   <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">Live CPU Load</span>
@@ -506,7 +485,6 @@ export default function SRECommandCenter() {
                 </div>
               </div>
 
-              {/* Card 3: AI Remediation */}
               <div className="bg-[#0f1525] border border-slate-800/80 rounded-xl p-4 transition-all hover:border-amber-500/40 shadow-lg">
                 <div className="flex items-center justify-between text-slate-400 mb-2">
                   <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">AI Remediation</span>
@@ -522,11 +500,10 @@ export default function SRECommandCenter() {
                   Policy engine online
                 </span>
               </div>
-
             </div>
           </div>
 
-          {/* Active Incidents Banner */}
+          {/* Active Incidents */}
           {incidents.length > 0 && (
             <div className="bg-red-950/30 border border-red-900/60 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveIncidentModal(incidents[0])}>
@@ -545,24 +522,20 @@ export default function SRECommandCenter() {
             </div>
           )}
 
-          {/* Live AI Diagnostic Stream Section with Clear Button */}
+          {/* AI Diagnostic Stream */}
           <div className="bg-[#0b101d] border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Terminal className="w-4 h-4 text-cyan-400" />
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">Live AI Diagnostic Stream</span>
               </div>
-              
               <div className="flex items-center space-x-3">
-                {/* Clear Logs Button */}
                 <button 
                   onClick={() => setLogs([])}
                   className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-mono transition-all cursor-pointer"
-                  title="Clear All Logs"
                 >
                   Clear Logs
                 </button>
-
                 <div className="flex items-center space-x-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   <span className="text-xs font-mono text-slate-400">Auto-scrolling</span>
@@ -572,7 +545,7 @@ export default function SRECommandCenter() {
 
             <div className="bg-[#070b14] border border-slate-900 rounded-xl p-3.5 space-y-2 font-mono text-xs max-h-40 overflow-y-auto">
               {logs.length === 0 ? (
-                <div className="text-slate-600 text-center py-4 italic">No logs available. Stream is clear.</div>
+                <div className="text-slate-600 text-center py-4 italic">No logs available.</div>
               ) : (
                 logs.map((log, idx) => (
                   <div key={idx} className="flex items-center space-x-3">
@@ -586,7 +559,6 @@ export default function SRECommandCenter() {
               )}
             </div>
 
-            {/* Interactive CLI Input Bar */}
             <div className="bg-[#070b14] border border-slate-800 rounded-xl px-3.5 py-2.5 flex items-center space-x-3">
               <span className="text-cyan-400 font-mono text-xs font-bold">&gt;</span>
               <input
@@ -596,14 +568,14 @@ export default function SRECommandCenter() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && cliInput.trim()) {
                     setLastCommand(`CLI Executed: ${cliInput}`);
-                    setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), type: 'INFO', msg: `CLI Command: ${cliInput}` }]);
-                    if (cliInput.toLowerCase().includes('heal') || cliInput.toLowerCase().includes('fix') || cliInput.toLowerCase().includes('resolve')) {
+                    setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), type: 'INFO', msg: `CLI: ${cliInput}` }]);
+                    if (cliInput.toLowerCase().includes('heal') || cliInput.toLowerCase().includes('fix')) {
                       triggerSelfHealing();
                     }
                     setCliInput('');
                   }
                 }}
-                placeholder="Type command (e.g., 'heal cluster', 'status') and press Enter..."
+                placeholder="Type command (e.g., 'heal cluster') and press Enter..."
                 className="w-full bg-transparent text-slate-100 font-mono text-xs focus:outline-none placeholder-slate-600"
               />
             </div>
@@ -626,7 +598,7 @@ export default function SRECommandCenter() {
             </button>
           </div>
 
-          {/* Cluster Performance Metrics Chart Card */}
+          {/* Performance Chart */}
           <div className="bg-[#0b101d] border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
@@ -645,9 +617,6 @@ export default function SRECommandCenter() {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                   <span className="text-slate-300">Memory %</span>
                 </div>
-                <div className="bg-[#0f1525] border border-slate-800 px-3 py-1 rounded-lg text-slate-300">
-                  Last 6 Hours ▾
-                </div>
               </div>
             </div>
 
@@ -664,16 +633,15 @@ export default function SRECommandCenter() {
               </ResponsiveContainer>
             </div>
           </div>
-
         </main>
 
-        {/* Right Sidebar: Neural Vision & Voice Input */}
-        <aside className="w-80 bg-[#0b101d] border-l border-slate-800/80 p-5 flex flex-col justify-between hidden xl:flex">
-          <div className="space-y-6">
+        {/* Right Sidebar: Cleaned Up & Beautiful UI */}
+        <aside className="w-80 bg-[#0b101d] border-l border-slate-800/80 p-5 flex flex-col justify-between hidden xl:flex shrink-0">
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Video className="w-4 h-4 text-cyan-400" />
-                <span className="text-xs font-bold font-mono tracking-wide text-slate-200">Neural Vision & Voice Input</span>
+                <span className="text-xs font-bold font-mono tracking-wide text-slate-200">Neural Vision & Voice</span>
               </div>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 border border-emerald-800 text-emerald-400 flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -681,24 +649,8 @@ export default function SRECommandCenter() {
               </span>
             </div>
 
-            <div className="flex items-center justify-end space-x-2">
-              <button 
-                onClick={toggleCamera}
-                className={`p-2 rounded-xl border transition-all cursor-pointer ${cameraActive ? 'bg-emerald-950 border-emerald-700 text-emerald-400' : 'bg-[#0f1525] border-slate-800 text-slate-400 hover:text-white'}`}
-                title="Toggle Camera"
-              >
-                {cameraActive ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-              </button>
-              <button 
-                onClick={toggleVoice}
-                className={`p-2 rounded-xl border transition-all cursor-pointer ${voiceActive ? 'bg-cyan-950 border-cyan-700 text-cyan-400 animate-pulse' : 'bg-[#0f1525] border-slate-800 text-slate-400 hover:text-white'}`}
-                title="Toggle Mic / Voice Command"
-              >
-                {voiceActive ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-              </button>
-            </div>
-
-            <div className="relative w-full h-56 bg-[#070b14] rounded-2xl border border-cyan-500/30 overflow-hidden flex items-center justify-center shadow-lg">
+            {/* Video Box */}
+            <div className="relative w-full h-48 bg-[#070b14] rounded-2xl border border-cyan-500/30 overflow-hidden flex items-center justify-center shadow-inner">
               <video 
                 ref={videoRef} 
                 autoPlay 
@@ -707,30 +659,47 @@ export default function SRECommandCenter() {
                 className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`} 
               />
               {!cameraActive && (
-                <div className="text-center p-4 text-slate-500 font-mono text-xs space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-400">
-                    <VideoOff className="w-6 h-6 opacity-60" />
+                <div className="text-center p-4 text-slate-500 font-mono text-xs space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                    <VideoOff className="w-5 h-5 opacity-60" />
                   </div>
-                  <div>
-                    <p className="font-bold text-slate-300">Webcam Stream Offline</p>
-                    <p className="text-[11px] text-slate-500 mt-1">Click camera icon above to start.</p>
-                  </div>
+                  <p className="font-bold text-slate-300">Camera Offline</p>
                 </div>
               )}
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={toggleCamera}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold font-mono flex items-center justify-center space-x-2 border transition-all cursor-pointer ${cameraActive ? 'bg-emerald-950 border-emerald-700 text-emerald-400' : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border-cyan-400 shadow-md'}`}
+              >
+                {cameraActive ? <Video className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
+                <span>{cameraActive ? 'Stop Cam' : 'Start Cam'}</span>
+              </button>
+
+              <button 
+                onClick={toggleVoice}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold font-mono flex items-center justify-center space-x-2 border transition-all cursor-pointer ${voiceActive ? 'bg-cyan-950 border-cyan-700 text-cyan-400' : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'}`}
+              >
+                {voiceActive ? <Mic className="w-3.5 h-3.5 animate-pulse" /> : <MicOff className="w-3.5 h-3.5 text-slate-500" />}
+                <span>{voiceActive ? 'Listening' : 'Voice Cmd'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="bg-[#070b14] border border-slate-800/80 rounded-xl p-4 font-mono text-xs space-y-3 shadow-inner">
+          {/* Telemetry Status Box */}
+          <div className="bg-[#070b14] border border-slate-800/80 rounded-xl p-3.5 font-mono text-[11px] space-y-2.5 shadow-inner">
             <div className="flex justify-between items-center">
-              <span className="text-slate-500">Detected Gesture:</span>
+              <span className="text-slate-500">Gesture:</span>
               <span className="text-cyan-400 font-bold truncate max-w-[130px]">{detectedGesture}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-500">Voice Listener:</span>
+              <span className="text-slate-500">Voice:</span>
               <span className="text-emerald-400 font-bold truncate max-w-[130px]">{voiceTranscript}</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-slate-900">
-              <span className="text-slate-500">Tracking FPS:</span>
+              <span className="text-slate-500">FPS:</span>
               <span className="text-slate-200 font-bold">{cameraActive ? '60 FPS' : '0 FPS'}</span>
             </div>
           </div>
@@ -738,7 +707,7 @@ export default function SRECommandCenter() {
 
       </div>
 
-      {/* Kubernetes Node Inspector Drawer */}
+      {/* Node Inspector Drawer */}
       {showNodeDrawer && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-end z-50">
           <div className="bg-[#0b101d] border-l border-slate-800 w-full max-w-md h-full p-6 shadow-2xl flex flex-col justify-between font-mono text-xs animate-in slide-in-from-right duration-300">
@@ -795,18 +764,12 @@ export default function SRECommandCenter() {
         </div>
       )}
 
-      {/* Interactive Feature Modals */}
+      {/* Modals */}
       {modalView && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#0b101d] border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-4 font-mono text-xs animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wider flex items-center space-x-2">
-                {modalView === 'feed' && <Radio className="w-4 h-4 text-cyan-400" />}
-                {modalView === 'clusters' && <GitBranch className="w-4 h-4 text-cyan-400" />}
-                {modalView === 'metrics' && <Activity className="w-4 h-4 text-cyan-400" />}
-                {modalView === 'logs' && <FileText className="w-4 h-4 text-cyan-400" />}
-                {modalView === 'settings' && <Settings className="w-4 h-4 text-cyan-400" />}
-                {modalView === 'summary' && <HardDrive className="w-4 h-4 text-cyan-400" />}
                 <span>{modalView === 'summary' ? 'System Health Summary' : `${modalView} Control Panel`}</span>
               </h3>
               <button onClick={() => setModalView(null)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
@@ -815,77 +778,7 @@ export default function SRECommandCenter() {
             </div>
 
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {modalView === 'feed' && (
-                <div className="space-y-3">
-                  <p className="text-slate-300">Live Diagnostic Stream Feed is currently active and broadcasting telemetry over WebSocket ({activeRegion}).</p>
-                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 space-y-2">
-                    {logs.map((l, idx) => (
-                      <div key={idx} className="text-[11px] text-slate-300 flex justify-between">
-                        <span>[{l.time}] {l.msg}</span>
-                        <span className="text-cyan-400">{l.type}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {modalView === 'clusters' && (
-                <div className="space-y-3">
-                  <p className="text-slate-300">Active Multi-Region Cluster Mesh Configuration:</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800">
-                      <span className="text-cyan-400 font-bold block">Region: {activeRegion}</span>
-                      <span className="text-slate-500 text-[10px]">Status: Active Master (4 Nodes)</span>
-                    </div>
-                    <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 font-bold block">Region: Failover Standby</span>
-                      <span className="text-slate-500 text-[10px]">Status: Replica Ready</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {modalView === 'metrics' && (
-                <div className="space-y-3">
-                  <p className="text-slate-300">Advanced Telemetry Diagnostics & Resource Utilization:</p>
-                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between">
-                    <span>Average Latency ({activeRegion})</span>
-                    <span className="text-cyan-400 font-bold">16.4 ms</span>
-                  </div>
-                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between">
-                    <span>Network Throughput</span>
-                    <span className="text-emerald-400 font-bold">1.2 GB/s</span>
-                  </div>
-                </div>
-              )}
-
-              {modalView === 'logs' && (
-                <div className="space-y-3">
-                  <p className="text-slate-300">Complete Cluster Audit Trail & Kernel Logs:</p>
-                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 font-mono text-[10px] space-y-1">
-                    <div className="text-emerald-400">[OK] Kubernetes scheduler initialized on {activeRegion}.</div>
-                    <div className="text-cyan-400">[INFO] AI self-healing policy engine loaded v4.2.</div>
-                    <div className="text-amber-400">[WARN] High memory warning on token parser (Resolved).</div>
-                  </div>
-                </div>
-              )}
-
-              {modalView === 'settings' && (
-                <div className="space-y-3">
-                  <p className="text-slate-300">Enterprise SRE Command Center Preferences:</p>
-                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between items-center">
-                    <span>Auto-Remediation Policy</span>
-                    <span className="px-2 py-1 bg-cyan-950 text-cyan-300 rounded">Enabled (Strict)</span>
-                  </div>
-                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between items-center">
-                    <span>Slack Webhook Alerts</span>
-                    <span className="px-2 py-1 bg-emerald-950 text-emerald-300 rounded">Connected</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Naya Health Summary Modal Content */}
-              {modalView === 'summary' && (
+              {modalView === 'summary' ? (
                 <div className="space-y-3">
                   <p className="text-slate-300">Comprehensive Cluster & Node Health Report:</p>
                   <div className="grid grid-cols-2 gap-3">
@@ -903,6 +796,15 @@ export default function SRECommandCenter() {
                     <span className="text-emerald-400 font-bold">99.98%</span>
                   </div>
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-slate-300">Viewing telemetry feed and operational controls for {activeRegion}.</p>
+                  <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 space-y-1">
+                    {logs.map((l, idx) => (
+                      <div key={idx} className="text-[11px] text-slate-300">[{l.time}] {l.msg}</div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
@@ -912,49 +814,6 @@ export default function SRECommandCenter() {
                 className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition-all shadow-md cursor-pointer"
               >
                 Close Panel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Incident Inspector Modal */}
-      {activeIncidentModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0b101d] border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4 font-mono text-xs">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-red-400 flex items-center space-x-2">
-                <ShieldAlert className="w-4 h-4" />
-                <span>Incident Diagnostics: {activeIncidentModal.id}</span>
-              </h3>
-              <button onClick={() => setActiveIncidentModal(null)} className="text-slate-400 hover:text-white cursor-pointer">[CLOSE]</button>
-            </div>
-            <div className="space-y-3">
-              <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between">
-                <span className="text-slate-500">Service Affected:</span>
-                <span className="text-cyan-400">{activeIncidentModal.service}</span>
-              </div>
-              <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between">
-                <span className="text-slate-500">Severity Level:</span>
-                <span className="text-red-400 font-bold">{activeIncidentModal.severity}</span>
-              </div>
-              <div className="bg-[#070b14] p-3 rounded-xl border border-slate-800 flex justify-between">
-                <span className="text-slate-500">Diagnostic Details:</span>
-                <span className="text-slate-200">{activeIncidentModal.details}</span>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2 pt-2">
-              <button 
-                onClick={() => setActiveIncidentModal(null)} 
-                className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all font-semibold cursor-pointer"
-              >
-                Dismiss
-              </button>
-              <button 
-                onClick={triggerSelfHealing}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl shadow-lg shadow-red-600/20 transition-all cursor-pointer"
-              >
-                Auto-Remediate Now
               </button>
             </div>
           </div>
