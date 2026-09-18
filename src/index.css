@@ -4,20 +4,26 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap');
 
-body {
+/* Fix browser viewport background and prevent gutter overflow */
+html, body {
   font-family: 'Inter', sans-serif;
-  background-color: #0B0F19;
+  background-color: #070b14 !important;
   color: #E2E8F0;
   margin: 0;
   padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', sans-serif !important;
 }
-/* Custom Dark Scrollbar */
+
+/* Custom Sleek Dark Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #070b14;
