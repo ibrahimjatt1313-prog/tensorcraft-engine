@@ -103,11 +103,11 @@
                     <i data-lucide="volume-2" id="speaker-icon" class="w-4 h-4"></i>
                 </button>
 
-                <button class="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800/50 transition relative cursor-pointer" title="Notifications">
-                    <i data-lucide="bell" class="w-4 h-4"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-cyan-400 rounded-full animate-ping"></span>
+                <!-- Post-Mortem Report Download Button -->
+                <button onclick="downloadPostMortemReport()" class="bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-purple-300 font-semibold px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition cursor-pointer" title="Download AI Post-Mortem Incident Report">
+                    <i data-lucide="file-down" class="w-3.5 h-3.5"></i> Post-Mortem
                 </button>
-                
+
                 <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow ring-2 ring-cyan-500/30">
                     A
                 </div>
@@ -355,7 +355,7 @@
                 </div>
             </div>
 
-            <!-- 4. CLUSTER TOPOLOGY TAB (UPGRADED) -->
+            <!-- 4. CLUSTER TOPOLOGY TAB -->
             <div id="tab-clusters" class="tab-content space-y-6">
                 <div class="glass-panel p-6 rounded-2xl space-y-6">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -415,7 +415,7 @@
                 </div>
             </div>
 
-            <!-- 6. SYSTEM LOGS TAB (UPGRADED) -->
+            <!-- 6. SYSTEM LOGS TAB -->
             <div id="tab-logs" class="tab-content space-y-6">
                 <div class="glass-panel p-6 rounded-2xl space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -496,6 +496,53 @@
         // Clear System Logs function
         function clearSystemLogs() {
             document.getElementById('comprehensive-log-box').innerHTML = '<div class="text-slate-500">[LOGS CLEARED] Ready for fresh telemetry records.</div>';
+        }
+
+        // Automated Post-Mortem Incident Report Generator
+        function downloadPostMortemReport() {
+            const now = new Date().toLocaleString();
+            const logBox = document.getElementById('comprehensive-log-box');
+            const logsText = logBox ? logBox.innerText : "No logs recorded.";
+
+            const reportContent = `==================================================
+TENSORCRAFT AI SRE - AUTOMATED INCIDENT POST-MORTEM
+==================================================
+Generated Timestamp: ${now}
+Cluster Status: STABLE (All Systems Nominal)
+Active Region: us-east-1 (Primary)
+Autonomous Agent: WAR ROOM v4.2
+
+--------------------------------------------------
+INCIDENT SUMMARY & DIAGNOSTICS:
+--------------------------------------------------
+- Total Active Pods: 4 Instances
+- Average CPU Load: 52% (Optimal Range)
+- Auto-Remediation Triggered: Yes (Zero-Touch Policy)
+
+--------------------------------------------------
+COMPREHENSIVE SESSION SYSTEM LOGS:
+--------------------------------------------------
+${logsText}
+
+--------------------------------------------------
+RECOMMENDATIONS & CONCLUSION:
+--------------------------------------------------
+1. Cluster performance remains stable across all global zones.
+2. Auto-scaler successfully mitigated memory spike without human intervention.
+3. Next routine diagnostic scheduled in 24 hours.
+
+[Report certified by TensorCraft Autonomous SRE Kernel v4.2]
+`;
+
+            const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `TensorCraft_SRE_PostMortem_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // Webcam Stream Control
